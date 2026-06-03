@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a2b4a">
+<title>Pedido de material · Ingeman</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pedidos">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #f5f5f0;
+    --surface: #ffffff;
+    --surface-2: #faf9f5;
+    --text: #1f1f1d;
+    --text-2: #6b6b66;
+    --text-3: #9a9a93;
+    --border: #e5e3da;
+    --border-2: #d1cfc4;
+    --primary: #1a2b4a;
+    --primary-light: #2d4570;
+    --blue-bg: #e6f1fb;
+    --blue-text: #0c447c;
+    --blue-border: #185fa5;
+    --amber-bg: #faeeda;
+    --amber-text: #633806;
+    --amber-border: #ba7517;
+    --red-bg: #fcebeb;
+    --red-text: #791f1f;
+    --red-border: #a32d2d;
+    --green-bg: #eaf3de;
+    --green-text: #3b6d11;
+  }
+
+  html, body {
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  .wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    padding-bottom: 6rem;
+  }
+
+  .header {
+    background: var(--primary);
+    color: #fff;
+    padding: 1.5rem 1.25rem 1.5rem;
+    border-radius: 0 0 16px 16px;
+    margin-bottom: 1.25rem;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  .header-icon {
+    width: 40px; height: 40px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+
+  .header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .header p {
+    font-size: 12px;
+    color: rgba(255,255,255,0.65);
+    margin-top: 4px;
+  }
+
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin: 0 1rem 1rem;
+    overflow: hidden;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 11px 14px 7px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+
+  .field {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .field:last-child { border-bottom: none; }
+
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-2);
+    margin-bottom: 5px;
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    width: 100%;
+    font-size: 16px;
+    color: var(--text);
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    padding: 0;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .field textarea { resize: none; line-height: 1.5; }
+  .field select { cursor: pointer; }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 70px 80px 1fr;
+  }
+
+  .field-row .field {
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+  }
+  .field-row .field:last-child { border-right: none; }
+
+  .urgency-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 11px 14px;
+  }
+
+  .urgency-btn {
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    border-radius: 10px;
+    padding: 10px 4px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-2);
+    font-family: inherit;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+
+  .urgency-btn svg {
+    display: block;
+    margin: 0 auto 4px;
+    width: 18px; height: 18px;
+  }
+
+  .urgency-btn.selected-normal {
+    border-color: var(--blue-border);
+    background: var(--blue-bg);
+    color: var(--blue-text);
+  }
+  .urgency-btn.selected-urgente {
+    border-color: var(--amber-border);
+    background: var(--amber-bg);
+    color: var(--amber-text);
+  }
+  .urgency-btn.selected-critico {
+    border-color: var(--red-border);
+    background: var(--red-bg);
+    color: var(--red-text);
+  }
+
+  .add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 14px;
+    color: var(--blue-border);
+    cursor: pointer;
+    background: var(--surface-2);
+    border: none;
+    border-top: 1px solid var(--border);
+    font-family: inherit;
+    font-weight: 500;
+  }
+
+  .add-btn svg { width: 16px; height: 16px; }
+
+  .submit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: calc(100% - 2rem);
+    margin: 1.5rem 1rem 0;
+    padding: 16px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .submit-btn:active { transform: scale(0.98); opacity: 0.9; }
+  .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .submit-btn svg { width: 18px; height: 18px; }
+
+  .success-screen {
+    display: none;
+    text-align: center;
+    padding: 4rem 2rem;
+  }
+
+  .success-icon {
+    width: 72px; height: 72px;
+    background: var(--green-bg);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.25rem;
+    color: var(--green-text);
+  }
+
+  .success-icon svg { width: 36px; height: 36px; }
+
+  .success-screen h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .success-screen p {
+    font-size: 14px;
+    color: var(--text-2);
+    margin-bottom: 1.75rem;
+    line-height: 1.6;
+  }
+
+  .new-btn {
+    display: inline-block;
+    padding: 12px 28px;
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    border-radius: 10px;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+  }
+
+  .items-list { padding: 0 14px; }
+
+  .item-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text);
+  }
+  .item-row:last-child { border-bottom: none; }
+
+  .item-num {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 12px;
+    color: var(--text-2);
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .item-text { flex: 1; word-break: break-word; }
+  .item-del {
+    color: var(--text-3);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 4px;
+    display: flex;
+  }
+  .item-del svg { width: 16px; height: 16px; }
+
+  .error-msg {
+    display: none;
+    background: var(--red-bg);
+    color: var(--red-text);
+    padding: 10px 14px;
+    margin: 0 1rem 1rem;
+    border-radius: 10px;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .loading {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    margin: 0 1rem 1rem;
+  }
+  .tab {
+    flex: 1;
+    padding: 10px 8px;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-2);
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .tab.active {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  /* Order cards */
+  .orders-wrap { padding: 0 1rem; }
+  .empty-msg, .loading-msg {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-2);
+    font-size: 14px;
+  }
+  .order-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    transition: all 0.15s;
+  }
+  .order-card.editable {
+    cursor: pointer;
+    border-color: var(--border-2);
+  }
+  .order-card.editable:active {
+    transform: scale(0.99);
+    background: var(--surface-2);
+  }
+  .order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .order-date {
+    font-size: 12px;
+    color: var(--text-2);
+    font-weight: 500;
+  }
+  .status-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 100px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .status-badge.pendiente { background: var(--amber-bg); color: var(--amber-text); }
+  .status-badge.pedido    { background: var(--blue-bg); color: var(--blue-text); }
+  .status-badge.recibido  { background: var(--green-bg); color: var(--green-text); }
+  .status-badge.cancelado { background: #ebebe6; color: var(--text-2); }
+
+  .order-ot {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .order-items {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+    margin-bottom: 6px;
+    word-break: break-word;
+  }
+  .order-notas {
+    font-size: 12px;
+    color: var(--text-2);
+    font-style: italic;
+    padding: 6px 10px;
+    background: var(--surface-2);
+    border-radius: 6px;
+    margin: 6px 0;
+  }
+  .order-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .urg-badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+  .urg-badge.normal   { background: var(--blue-bg); color: var(--blue-text); }
+  .urg-badge.urgente  { background: var(--amber-bg); color: var(--amber-text); }
+  .urg-badge.critico  { background: var(--red-bg); color: var(--red-text); }
+  .edit-hint {
+    font-size: 11px;
+    color: var(--blue-border);
+    font-weight: 500;
+  }
+  .edit-hint::before { content: '✎ '; }
+
+  /* Edit mode buttons */
+  .form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 1.5rem 1rem 0;
+  }
+  .cancel-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border-2);
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .edit-banner {
+    background: var(--amber-bg);
+    color: var(--amber-text);
+    padding: 10px 14px;
+    margin: 0 1rem 1rem;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+  }
+
+  /* Login screen */
+  .login-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+  .login-box {
+    width: 100%;
+    max-width: 360px;
+  }
+  .login-logo {
+    width: 64px; height: 64px;
+    background: var(--primary);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    margin: 0 auto 1.5rem;
+  }
+  .login-logo svg { width: 32px; height: 32px; }
+  .login-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .login-subtitle {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-2);
+    margin-bottom: 1.5rem;
+  }
+  .login-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+  .login-form .field { padding: 12px 14px; }
+  .login-error {
+    display: none;
+    background: var(--red-bg);
+    color: var(--red-text);
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+  .login-loading {
+    text-align: center;
+    color: var(--text-2);
+    font-size: 13px;
+    margin-top: 1rem;
+  }
+  .remember-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 4px 14px;
+    font-size: 14px;
+    color: var(--text-2);
+    cursor: pointer;
+    user-select: none;
+  }
+  .remember-row input[type=checkbox] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--primary);
+  }
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+    </div>
+    <h1 class="login-title">Pedidos Ingeman</h1>
+    <p class="login-subtitle">Introduce tus credenciales para acceder</p>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-form">
+      <div class="field" style="border-bottom: 1px solid var(--border);">
+        <label>Usuario</label>
+        <input type="text" id="login-user" autocomplete="username" autocapitalize="none">
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" autocomplete="current-password">
+      </div>
+    </div>
+    <label class="remember-row">
+      <input type="checkbox" id="remember-user" checked>
+      <span>Recordar usuario</span>
+    </label>
+    <button class="submit-btn" id="login-btn" onclick="doLogin()" style="margin: 0;">
+      Acceder
+    </button>
+    <div class="login-loading" id="login-loading" style="display:none">Verificando...</div>
+  </div>
+</div>
+
+<div class="wrap" style="display:none" id="app-wrap">
+
+  <div class="header">
+    <div class="header-top">
+      <div class="header-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      </div>
+      <h1>Solicitud de material</h1>
+    </div>
+    <p>Ingeman · Burgos</p>
+  </div>
+
+  <div class="tabs" id="tabs-bar">
+    <button class="tab active" data-tab="new" onclick="showTab('new')">Nuevo pedido</button>
+    <button class="tab" data-tab="list" onclick="showTab('list')">Pedidos</button>
+  </div>
+
+  <div class="edit-banner" id="edit-banner" style="display:none">
+    Editando pedido — solo puedes modificar pedidos pendientes
+  </div>
+
+  <div id="view-form">
+  <div class="error-msg" id="error-msg"></div>
+
+  <div class="section">
+    <div class="section-label">Datos del pedido</div>
+    <div class="field">
+      <label>Tu nombre</label>
+      <input type="text" id="tecnico" placeholder="Ej: Juan García" autocomplete="name">
+    </div>
+    <div class="field">
+      <label>Nº de OT / obra</label>
+      <input type="text" id="ot" placeholder="Ej: RTB 600200081" autocomplete="off">
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Artículos</div>
+    <div class="items-list" id="items-list"></div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Cantidad</label>
+        <input type="number" id="qty" min="1" value="1" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Unidad</label>
+        <select id="unidad">
+          <option value="ud">ud</option>
+          <option value="m">m</option>
+          <option value="m²">m²</option>
+          <option value="kg">kg</option>
+          <option value="l">l</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Referencia / descripción</label>
+        <input type="text" id="ref" placeholder="Ej: Schneider XALD01" autocomplete="off">
+      </div>
+    </div>
+
+    <button class="add-btn" onclick="addItem()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Añadir otro artículo
+    </button>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Urgencia</div>
+    <div class="urgency-grid">
+      <button class="urgency-btn selected-normal" onclick="setUrgency('Normal', this)" id="u-normal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Normal
+      </button>
+      <button class="urgency-btn" onclick="setUrgency('Urgente', this)" id="u-urgente">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Urgente
+      </button>
+      <button class="urgency-btn" onclick="setUrgency('Crítico', this)" id="u-critico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Crítico
+      </button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Notas adicionales</div>
+    <div class="field">
+      <label>Observaciones (opcional)</label>
+      <textarea id="notas" rows="2" placeholder="Indicaciones especiales, proveedor preferido..."></textarea>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button class="submit-btn" id="submit-btn" onclick="submitForm()" style="margin:0;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      <span id="submit-btn-text">Enviar pedido</span>
+    </button>
+    <button class="cancel-btn" id="cancel-btn" onclick="cancelEdit()" style="display:none">Cancelar edición</button>
+  </div>
+
+  </div><!-- /view-form -->
+
+  <div id="view-list" style="display:none">
+    <div class="section">
+      <div class="section-label">Filtrar por fecha</div>
+      <div class="field-row" style="grid-template-columns: 1fr 1fr;">
+        <div class="field">
+          <label>Mes</label>
+          <select id="filter-mes"></select>
+        </div>
+        <div class="field">
+          <label>Año</label>
+          <select id="filter-anio"></select>
+        </div>
+      </div>
+    </div>
+    <button class="submit-btn" onclick="loadOrders()" style="margin: 0 1rem 1rem;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Ver pedidos
+    </button>
+    <div class="orders-wrap" id="orders-list"></div>
+  </div>
+
+<div class="success-screen" id="success-screen">
+  <div class="success-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+  </div>
+  <h2>Pedido enviado</h2>
+  <p>La oficina ya puede ver tu solicitud.<br>Te avisarán cuando esté gestionado.</p>
+  <button class="new-btn" onclick="resetForm()">Hacer otro pedido</button>
+</div>
+
+<div style="text-align: center; padding: 1rem; margin-top: 1rem;">
+  <button onclick="logout()" style="background: none; border: none; color: var(--text-3); font-size: 12px; cursor: pointer; font-family: inherit; text-decoration: underline;">Cerrar sesión</button>
+</div>
+
+</div><!-- /.wrap -->
+
+<script>
+  // ============================================================
+  // CONFIGURACIÓN
+  // ============================================================
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbweGNv3vVkm9630-vQyrBdJHYJXqcqxcoRLXO9uszj1YinasCrybCxAoifIYkboeavW/exec';
+  // ============================================================
+
+  let urgenciaActual = 'Normal';
+  let items = [];
+  let formMode = 'new';      // 'new' | 'edit'
+  let editingId = null;
+
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const stored = localStorage.getItem('tecnicoNombre') || '';
+    if (stored) {
+      document.getElementById('tecnico').value = stored;
+    }
+    populateFilters();
+
+    // Comprobar credenciales guardadas
+    checkStoredAuth();
+
+    // Enter en los campos de login → submit
+    ['login-user', 'login-pass'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') doLogin();
+      });
+    });
+  });
+
+  // ========== AUTH ==========
+
+  function getAuth() {
+    return {
+      user: localStorage.getItem('auth_user') || '',
+      pass: localStorage.getItem('auth_pass') || ''
+    };
+  }
+
+  function setAuth(user, pass) {
+    localStorage.setItem('auth_user', user);
+    localStorage.setItem('auth_pass', pass);
+  }
+
+  function clearAuth() {
+    localStorage.removeItem('auth_user');
+    localStorage.removeItem('auth_pass');
+  }
+
+  async function checkStoredAuth() {
+    const a = getAuth();
+    if (!a.user || !a.pass) {
+      showLoginScreen();
+      return;
+    }
+    // Validar contra el servidor
+    const ok = await validateAuth(a.user, a.pass);
+    if (ok) {
+      showApp();
+    } else {
+      clearAuth();
+      showLoginScreen();
+    }
+  }
+
+  async function validateAuth(user, pass) {
+    try {
+      const url = `${SCRIPT_URL}?action=login&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`;
+      const resp = await fetch(url);
+      const data = await resp.json();
+      return data.result === 'ok';
+    } catch (err) {
+      return false;
+    }
+  }
+
+  async function doLogin() {
+    const user = document.getElementById('login-user').value.trim();
+    const pass = document.getElementById('login-pass').value;
+    const errEl = document.getElementById('login-error');
+    const btn = document.getElementById('login-btn');
+    const loadingEl = document.getElementById('login-loading');
+
+    errEl.style.display = 'none';
+    if (!user || !pass) {
+      errEl.textContent = 'Introduce usuario y contraseña.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+    loadingEl.style.display = 'block';
+
+    const ok = await validateAuth(user, pass);
+
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    loadingEl.style.display = 'none';
+
+    if (ok) {
+      setAuth(user, pass);
+      // Gestionar "Recordar usuario"
+      if (document.getElementById('remember-user').checked) {
+        localStorage.setItem('remembered_user', user);
+      } else {
+        localStorage.removeItem('remembered_user');
+      }
+      document.getElementById('login-pass').value = '';
+      showApp();
+    } else {
+      errEl.textContent = 'Usuario o contraseña incorrectos.';
+      errEl.style.display = 'block';
+    }
+  }
+
+  function showLoginScreen() {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app-wrap').style.display = 'none';
+    // Pre-rellenar usuario recordado si existe
+    const remembered = localStorage.getItem('remembered_user') || '';
+    const userInput = document.getElementById('login-user');
+    const passInput = document.getElementById('login-pass');
+    const checkbox = document.getElementById('remember-user');
+    if (remembered) {
+      userInput.value = remembered;
+      checkbox.checked = true;
+      passInput.focus();
+    } else {
+      checkbox.checked = false;
+      userInput.focus();
+    }
+  }
+
+  function showApp() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-wrap').style.display = 'block';
+  }
+
+  function logout() {
+    clearAuth();
+    // No borramos remembered_user, así el usuario sigue pre-rellenado
+    document.getElementById('login-pass').value = '';
+    showLoginScreen();
+  }
+
+  // ========== FIN AUTH ==========
+
+  function populateFilters() {
+    const mesSel = document.getElementById('filter-mes');
+    const anioSel = document.getElementById('filter-anio');
+    const now = new Date();
+    const yearNow = now.getFullYear();
+    const monthNow = now.getMonth() + 1;
+
+    let mesHtml = '<option value="">Todos los meses</option>';
+    for (let i = 0; i < 12; i++) {
+      const num = String(i + 1).padStart(2, '0');
+      const sel = (i + 1) === monthNow ? ' selected' : '';
+      mesHtml += `<option value="${num}"${sel}>${MESES[i]}</option>`;
+    }
+    mesSel.innerHTML = mesHtml;
+
+    let anioHtml = '<option value="">Todos los años</option>';
+    for (let y = yearNow; y >= yearNow - 3; y--) {
+      const sel = y === yearNow ? ' selected' : '';
+      anioHtml += `<option value="${y}"${sel}>${y}</option>`;
+    }
+    anioSel.innerHTML = anioHtml;
+  }
+
+  function showTab(tab) {
+    if (formMode === 'edit' && tab === 'list') {
+      if (!confirm('¿Descartar los cambios de edición?')) return;
+      cancelEdit(true);
+    }
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    document.getElementById('view-form').style.display = tab === 'new' ? 'block' : 'none';
+    document.getElementById('view-list').style.display = tab === 'list' ? 'block' : 'none';
+    document.getElementById('success-screen').style.display = 'none';
+    window.scrollTo({ top: 0 });
+  }
+
+  function setUrgency(val, btn) {
+    urgenciaActual = val;
+    document.querySelectorAll('.urgency-btn').forEach(b => b.className = 'urgency-btn');
+    if (val === 'Normal') btn.classList.add('selected-normal');
+    else if (val === 'Urgente') btn.classList.add('selected-urgente');
+    else btn.classList.add('selected-critico');
+  }
+
+  function addItem() {
+    const qty = parseInt(document.getElementById('qty').value) || 1;
+    const unidad = document.getElementById('unidad').value;
+    const ref = document.getElementById('ref').value.trim();
+    if (!ref) { document.getElementById('ref').focus(); return; }
+    items.push({ qty, unidad, ref });
+    renderItems();
+    document.getElementById('qty').value = 1;
+    document.getElementById('unidad').value = 'ud';
+    document.getElementById('ref').value = '';
+    document.getElementById('ref').focus();
+  }
+
+  function renderItems() {
+    const list = document.getElementById('items-list');
+    if (items.length === 0) { list.innerHTML = ''; return; }
+    list.innerHTML = items.map((it, i) =>
+      `<div class="item-row">
+        <span class="item-num">${it.qty} ${it.unidad}</span>
+        <span class="item-text">${escapeHtml(it.ref)}</span>
+        <button class="item-del" onclick="removeItem(${i})" aria-label="Eliminar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>`
+    ).join('');
+  }
+
+  function removeItem(i) {
+    items.splice(i, 1);
+    renderItems();
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = msg;
+    el.style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => { el.style.display = 'none'; }, 4000);
+  }
+
+  async function submitForm() {
+    const tecnico = document.getElementById('tecnico').value.trim();
+    const ot = document.getElementById('ot').value.trim();
+    const notas = document.getElementById('notas').value.trim();
+    const refPendiente = document.getElementById('ref').value.trim();
+
+    if (!tecnico) { showError('Introduce tu nombre.'); return; }
+    if (!ot) { showError('Introduce el número de OT.'); return; }
+    if (refPendiente) addItem();
+    if (items.length === 0) { showError('Añade al menos un artículo.'); return; }
+
+    localStorage.setItem('tecnicoNombre', tecnico);
+
+    const articulosTexto = items.map(it => `${it.qty} ${it.unidad} ${it.ref}`).join(' | ');
+
+    const auth = getAuth();
+    const payload = {
+      user: auth.user,
+      pass: auth.pass,
+      action: formMode === 'edit' ? 'update' : 'create',
+      id: editingId,
+      tecnico, ot,
+      articulos: articulosTexto,
+      urgencia: urgenciaActual,
+      notas
+    };
+
+    const isEdit = formMode === 'edit';
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading"></span> ' + (isEdit ? 'Guardando...' : 'Enviando...');
+
+    let sent = false;
+    try {
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      sent = true;
+    } catch (err) {
+      sent = false;
+    }
+
+    // Restaurar SIEMPRE el botón antes de tocar el resto del DOM
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> <span id="submit-btn-text">' + (isEdit ? 'Guardar cambios' : 'Enviar pedido') + '</span>';
+
+    if (!sent) {
+      showError('Error al enviar. Revisa tu conexión e inténtalo de nuevo.');
+      return;
+    }
+
+    if (isEdit) {
+      cancelEdit(true);
+      showTab('list');
+      setTimeout(loadOrders, 800);
+    } else {
+      document.getElementById('view-form').style.display = 'none';
+      document.getElementById('view-list').style.display = 'none';
+      document.getElementById('tabs-bar').style.display = 'none';
+      document.getElementById('success-screen').style.display = 'block';
+    }
+    window.scrollTo({ top: 0 });
+  }
+
+  function resetForm() {
+    items = [];
+    renderItems();
+    document.getElementById('tecnico').value = localStorage.getItem('tecnicoNombre') || '';
+    document.getElementById('ot').value = '';
+    document.getElementById('notas').value = '';
+    document.getElementById('qty').value = 1;
+    document.getElementById('unidad').value = 'ud';
+    document.getElementById('ref').value = '';
+    urgenciaActual = 'Normal';
+    document.querySelectorAll('.urgency-btn').forEach(b => b.className = 'urgency-btn');
+    document.getElementById('u-normal').classList.add('selected-normal');
+    document.getElementById('tabs-bar').style.display = 'flex';
+    document.getElementById('success-screen').style.display = 'none';
+    showTab('new');
+  }
+
+  // ============= MIS PEDIDOS =============
+
+  async function loadOrders() {
+    const mes = document.getElementById('filter-mes').value;
+    const anio = document.getElementById('filter-anio').value;
+
+    const list = document.getElementById('orders-list');
+    list.innerHTML = '<div class="loading-msg">Cargando pedidos...</div>';
+
+    try {
+      const auth = getAuth();
+      const params = [`user=${encodeURIComponent(auth.user)}`, `pass=${encodeURIComponent(auth.pass)}`];
+      if (mes) params.push('mes=' + mes);
+      if (anio) params.push('anio=' + anio);
+      const url = SCRIPT_URL + '?' + params.join('&');
+      const resp = await fetch(url);
+      const data = await resp.json();
+
+      if (data.message === 'auth') {
+        clearAuth();
+        showLoginScreen();
+        return;
+      }
+
+      renderOrders(data.pedidos || []);
+    } catch (err) {
+      list.innerHTML = '<div class="empty-msg">Error al cargar. Revisa tu conexión.</div>';
+    }
+  }
+
+  function renderOrders(pedidos) {
+    const list = document.getElementById('orders-list');
+    if (pedidos.length === 0) {
+      list.innerHTML = '<div class="empty-msg">No hay pedidos para este filtro.</div>';
+      return;
+    }
+    window._pedidosCache = pedidos;
+    list.innerHTML = pedidos.map((p, idx) => {
+      const estadoKey = (p.estado || 'Pendiente').toLowerCase();
+      const urgKey = (p.urgencia || 'Normal').toLowerCase().replace('í','i');
+      const editable = estadoKey === 'pendiente';
+      const articulosFmt = escapeHtml(p.articulos).replace(/ \| /g, '<br>');
+      return `<div class="order-card ${editable ? 'editable' : ''}" ${editable ? `onclick="startEdit(${idx})"` : ''}>
+        <div class="order-header">
+          <span class="order-date">${escapeHtml(p.fecha)} · ${escapeHtml(p.tecnico)}</span>
+          <span class="status-badge ${estadoKey}">${escapeHtml(p.estado)}</span>
+        </div>
+        <div class="order-ot">OT: ${escapeHtml(p.ot)}</div>
+        <div class="order-items">${articulosFmt}</div>
+        ${p.notas ? `<div class="order-notas">${escapeHtml(p.notas)}</div>` : ''}
+        <div class="order-footer">
+          <span class="urg-badge ${urgKey}">${escapeHtml(p.urgencia)}</span>
+          ${editable ? '<span class="edit-hint">Toca para editar</span>' : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function parseArticulos(str) {
+    if (!str) return [];
+    return str.split(' | ').map(p => {
+      const tokens = p.trim().split(' ');
+      const qty = parseInt(tokens[0]) || 1;
+      const unidad = tokens[1] || 'ud';
+      const ref = tokens.slice(2).join(' ');
+      return { qty, unidad, ref };
+    }).filter(it => it.ref);
+  }
+
+  function startEdit(idx) {
+    const p = (window._pedidosCache || [])[idx];
+    if (!p) return;
+
+    formMode = 'edit';
+    editingId = p.id;
+
+    document.getElementById('tecnico').value = p.tecnico;
+    document.getElementById('ot').value = p.ot;
+    document.getElementById('notas').value = p.notas || '';
+
+    items = parseArticulos(p.articulos);
+    renderItems();
+
+    const urgKey = (p.urgencia || 'Normal');
+    const btn = document.getElementById('u-' + urgKey.toLowerCase().replace('í','i'));
+    if (btn) setUrgency(urgKey, btn);
+
+    document.getElementById('edit-banner').style.display = 'block';
+    document.getElementById('cancel-btn').style.display = 'block';
+    document.getElementById('submit-btn-text').textContent = 'Guardar cambios';
+
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'new'));
+    document.getElementById('view-form').style.display = 'block';
+    document.getElementById('view-list').style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelEdit(silent) {
+    formMode = 'new';
+    editingId = null;
+    document.getElementById('edit-banner').style.display = 'none';
+    document.getElementById('cancel-btn').style.display = 'none';
+    const btnText = document.getElementById('submit-btn-text');
+    if (btnText) btnText.textContent = 'Enviar pedido';
+    items = [];
+    renderItems();
+    document.getElementById('ot').value = '';
+    document.getElementById('notas').value = '';
+    document.getElementById('qty').value = 1;
+    document.getElementById('unidad').value = 'ud';
+    document.getElementById('ref').value = '';
+    urgenciaActual = 'Normal';
+    document.querySelectorAll('.urgency-btn').forEach(b => b.className = 'urgency-btn');
+    document.getElementById('u-normal').classList.add('selected-normal');
+    if (!silent) showTab('list');
+  }
+</script>
+
+</body>
+</html>
