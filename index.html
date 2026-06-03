@@ -363,12 +363,26 @@
   }
 
   /* Order cards */
+  .sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg);
+    padding-top: 1px;
+  }
   .orders-wrap { padding: 0 1rem; }
   .empty-msg, .loading-msg {
     text-align: center;
     padding: 2rem 1rem;
     color: var(--text-2);
     font-size: 14px;
+  }
+  .more-hint {
+    text-align: center;
+    padding: 1rem;
+    color: var(--text-2);
+    font-size: 12px;
+    font-style: italic;
   }
   .order-card {
     background: var(--surface);
@@ -564,6 +578,21 @@
     cursor: pointer;
     accent-color: var(--primary);
   }
+  .pass-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 6px;
+    cursor: pointer;
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pass-toggle svg { width: 18px; height: 18px; }
 </style>
 </head>
 <body>
@@ -581,9 +610,13 @@
         <label>Usuario</label>
         <input type="text" id="login-user" autocomplete="username" autocapitalize="none">
       </div>
-      <div class="field">
+      <div class="field" style="position: relative;">
         <label>Contraseña</label>
-        <input type="password" id="login-pass" autocomplete="current-password">
+        <input type="password" id="login-pass" autocomplete="current-password" style="padding-right: 36px;">
+        <button type="button" class="pass-toggle" onclick="togglePassword(this)" aria-label="Mostrar contraseña">
+          <svg id="eye-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg id="eye-hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
       </div>
     </div>
     <label class="remember-row">
@@ -701,23 +734,34 @@
   </div><!-- /view-form -->
 
   <div id="view-list" style="display:none">
-    <div class="section">
-      <div class="section-label">Filtrar por fecha</div>
-      <div class="field-row" style="grid-template-columns: 1fr 1fr;">
-        <div class="field">
-          <label>Mes</label>
-          <select id="filter-mes"></select>
+    <div class="sticky-header">
+      <div class="section">
+        <div class="section-label">Filtrar por fecha</div>
+        <div class="field-row" style="grid-template-columns: 1fr 1fr;">
+          <div class="field">
+            <label>Mes</label>
+            <select id="filter-mes"></select>
+          </div>
+          <div class="field">
+            <label>Año</label>
+            <select id="filter-anio"></select>
+          </div>
         </div>
-        <div class="field">
-          <label>Año</label>
-          <select id="filter-anio"></select>
+        <div class="field" style="border-top: 1px solid var(--border);">
+          <label>Mostrar</label>
+          <select id="filter-limit" onchange="rerenderOrders()">
+            <option value="10">10 más recientes</option>
+            <option value="25" selected>25 más recientes</option>
+            <option value="50">50 más recientes</option>
+            <option value="0">Todos</option>
+          </select>
         </div>
       </div>
+      <button class="submit-btn" onclick="loadOrders()" style="margin: 0 1rem 1rem;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Ver pedidos
+      </button>
     </div>
-    <button class="submit-btn" onclick="loadOrders()" style="margin: 0 1rem 1rem;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      Ver pedidos
-    </button>
     <div class="orders-wrap" id="orders-list"></div>
   </div>
 
@@ -851,6 +895,21 @@
     } else {
       errEl.textContent = 'Usuario o contraseña incorrectos.';
       errEl.style.display = 'block';
+    }
+  }
+
+  function togglePassword(btn) {
+    const input = document.getElementById('login-pass');
+    const show = document.getElementById('eye-show');
+    const hide = document.getElementById('eye-hide');
+    if (input.type === 'password') {
+      input.type = 'text';
+      show.style.display = 'none';
+      hide.style.display = 'block';
+    } else {
+      input.type = 'password';
+      show.style.display = 'block';
+      hide.style.display = 'none';
     }
   }
 
@@ -1088,13 +1147,23 @@
   }
 
   function renderOrders(pedidos) {
+    window._pedidosCache = pedidos;
+    rerenderOrders();
+  }
+
+  function rerenderOrders() {
+    const pedidos = window._pedidosCache || [];
     const list = document.getElementById('orders-list');
     if (pedidos.length === 0) {
       list.innerHTML = '<div class="empty-msg">No hay pedidos para este filtro.</div>';
       return;
     }
-    window._pedidosCache = pedidos;
-    list.innerHTML = pedidos.map((p, idx) => {
+
+    const limit = parseInt(document.getElementById('filter-limit').value) || 0;
+    const toShow = limit > 0 ? pedidos.slice(0, limit) : pedidos;
+    const hidden = pedidos.length - toShow.length;
+
+    list.innerHTML = toShow.map((p, idx) => {
       const estadoKey = (p.estado || 'Pendiente').toLowerCase();
       const urgKey = (p.urgencia || 'Normal').toLowerCase().replace('í','i');
       const editable = estadoKey === 'pendiente';
@@ -1113,6 +1182,10 @@
         </div>
       </div>`;
     }).join('');
+
+    if (hidden > 0) {
+      list.innerHTML += `<div class="more-hint">Hay ${hidden} pedido${hidden === 1 ? '' : 's'} más. Cambia "Mostrar" para verlos.</div>`;
+    }
   }
 
   function parseArticulos(str) {
