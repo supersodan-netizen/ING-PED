@@ -384,6 +384,12 @@
     font-size: 12px;
     font-style: italic;
   }
+  .last-update {
+    text-align: center;
+    padding: 0 0 0.75rem;
+    color: var(--text-3);
+    font-size: 11px;
+  }
   .order-card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -766,10 +772,11 @@
           </select>
         </div>
       </div>
-      <button class="submit-btn" onclick="loadOrders()" style="margin: 0 1rem 1rem;">
+      <button class="submit-btn" onclick="loadOrders()" style="margin: 0 1rem 0.5rem;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         Ver pedidos
       </button>
+      <div class="last-update" id="last-update"></div>
     </div>
     <div class="orders-wrap" id="orders-list"></div>
   </div>
@@ -946,8 +953,8 @@
   }
 
   function logout() {
+    stopPolling();
     clearAuth();
-    // No borramos remembered_user, así el usuario sigue pre-rellenado
     document.getElementById('login-pass').value = '';
     showLoginScreen();
   }
@@ -977,6 +984,81 @@
     anioSel.innerHTML = anioHtml;
   }
 
+  // ============= AUTO-REFRESH =============
+  let pollIntervalId = null;
+  let lastUpdateTime = null;
+  const POLL_SECONDS = 30;
+
+  function startPolling() {
+    stopPolling();
+    pollIntervalId = setInterval(silentReload, POLL_SECONDS * 1000);
+  }
+
+  function stopPolling() {
+    if (pollIntervalId) {
+      clearInterval(pollIntervalId);
+      pollIntervalId = null;
+    }
+  }
+
+  async function silentReload() {
+    if (document.hidden) return;
+    if (document.getElementById('view-list').style.display === 'none') return;
+    const auth = getAuth();
+    if (!auth.user || !auth.pass) return;
+
+    try {
+      const mes = document.getElementById('filter-mes').value;
+      const anio = document.getElementById('filter-anio').value;
+      const params = [`user=${encodeURIComponent(auth.user)}`, `pass=${encodeURIComponent(auth.pass)}`];
+      if (mes) params.push('mes=' + mes);
+      if (anio) params.push('anio=' + anio);
+      const url = SCRIPT_URL + '?' + params.join('&');
+      const resp = await fetch(url);
+      const data = await resp.json();
+
+      if (data.message === 'auth') {
+        stopPolling();
+        clearAuth();
+        showLoginScreen();
+        return;
+      }
+
+      const newJson = JSON.stringify(data.pedidos || []);
+      if (newJson !== window._lastPedidosJson) {
+        window._lastPedidosJson = newJson;
+        renderOrders(data.pedidos || []);
+      }
+      lastUpdateTime = Date.now();
+      renderLastUpdate();
+    } catch (err) {
+      // Silenciar: reintentará en el siguiente ciclo
+    }
+  }
+
+  function renderLastUpdate() {
+    const el = document.getElementById('last-update');
+    if (!el) return;
+    if (!lastUpdateTime) { el.textContent = ''; return; }
+    const seconds = Math.floor((Date.now() - lastUpdateTime) / 1000);
+    let text;
+    if (seconds < 5) text = 'Actualizado ahora';
+    else if (seconds < 60) text = `Actualizado hace ${seconds} segundos`;
+    else if (seconds < 3600) { const m = Math.floor(seconds / 60); text = `Actualizado hace ${m} minuto${m === 1 ? '' : 's'}`; }
+    else { const h = Math.floor(seconds / 3600); text = `Actualizado hace ${h} hora${h === 1 ? '' : 's'}`; }
+    el.textContent = text;
+  }
+
+  // Refrescar contador "hace X" cada segundo
+  setInterval(renderLastUpdate, 1000);
+
+  // Refrescar al volver a la app (cambio de visibilidad)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) silentReload();
+  });
+
+  // ============= FIN AUTO-REFRESH =============
+
   function showTab(tab) {
     if (formMode === 'edit' && tab === 'list') {
       if (!confirm('¿Descartar los cambios de edición?')) return;
@@ -987,6 +1069,14 @@
     document.getElementById('view-list').style.display = tab === 'list' ? 'block' : 'none';
     document.getElementById('success-screen').style.display = 'none';
     window.scrollTo({ top: 0 });
+
+    // Al entrar a Pedidos: cargar automáticamente y arrancar polling
+    if (tab === 'list') {
+      loadOrders();
+      startPolling();
+    } else {
+      stopPolling();
+    }
   }
 
   function setUrgency(val, btn) {
@@ -1149,6 +1239,9 @@
         return;
       }
 
+      window._lastPedidosJson = JSON.stringify(data.pedidos || []);
+      lastUpdateTime = Date.now();
+      renderLastUpdate();
       renderOrders(data.pedidos || []);
     } catch (err) {
       list.innerHTML = '<div class="empty-msg">Error al cargar. Revisa tu conexión.</div>';
