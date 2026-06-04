@@ -430,6 +430,15 @@
     color: var(--text);
     margin-bottom: 6px;
   }
+  .gestionado-line {
+    font-size: 12px;
+    color: var(--text-2);
+    margin-bottom: 8px;
+  }
+  .gestionado-line strong {
+    color: var(--text);
+    font-weight: 600;
+  }
   .order-items {
     font-size: 13px;
     color: var(--text);
@@ -658,7 +667,18 @@
     <div class="section-label">Datos del pedido</div>
     <div class="field">
       <label>Tu nombre</label>
-      <input type="text" id="tecnico" placeholder="Ej: Juan García" autocomplete="name">
+      <select id="tecnico-select" onchange="onTecnicoChange()">
+        <option value="">Selecciona...</option>
+        <option value="Ángel">Ángel</option>
+        <option value="Jorge">Jorge</option>
+        <option value="Rebeca">Rebeca</option>
+        <option value="Miriam">Miriam</option>
+        <option value="__otro__">Otro...</option>
+      </select>
+    </div>
+    <div class="field" id="tecnico-otro-field" style="display:none;">
+      <label>Escribe tu nombre</label>
+      <input type="text" id="tecnico-otro" autocomplete="name">
     </div>
     <div class="field">
       <label>Nº de OT / obra</label>
@@ -797,7 +817,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     const stored = localStorage.getItem('tecnicoNombre') || '';
     if (stored) {
-      document.getElementById('tecnico').value = stored;
+      setTecnico(stored);
     }
     populateFilters();
 
@@ -966,6 +986,49 @@
       anioHtml += `<option value="${y}"${sel}>${y}</option>`;
     }
     anioSel.innerHTML = anioHtml;
+  }
+
+  // ============= TÉCNICO =============
+  const TECNICOS_FIJOS = ['Ángel', 'Jorge', 'Rebeca', 'Miriam'];
+
+  function onTecnicoChange() {
+    const sel = document.getElementById('tecnico-select');
+    const row = document.getElementById('tecnico-otro-field');
+    const inp = document.getElementById('tecnico-otro');
+    if (sel.value === '__otro__') {
+      row.style.display = 'block';
+      setTimeout(() => inp.focus(), 50);
+    } else {
+      row.style.display = 'none';
+      inp.value = '';
+    }
+  }
+
+  function getTecnico() {
+    const sel = document.getElementById('tecnico-select');
+    if (sel.value === '__otro__') {
+      return document.getElementById('tecnico-otro').value.trim();
+    }
+    return sel.value;
+  }
+
+  function setTecnico(name) {
+    const sel = document.getElementById('tecnico-select');
+    const row = document.getElementById('tecnico-otro-field');
+    const inp = document.getElementById('tecnico-otro');
+    if (!name) {
+      sel.value = '';
+      row.style.display = 'none';
+      inp.value = '';
+    } else if (TECNICOS_FIJOS.includes(name)) {
+      sel.value = name;
+      row.style.display = 'none';
+      inp.value = '';
+    } else {
+      sel.value = '__otro__';
+      row.style.display = 'block';
+      inp.value = name;
+    }
   }
 
   function showTab(tab) {
@@ -1173,6 +1236,7 @@
           <span class="order-date">${escapeHtml(p.fecha)} · ${escapeHtml(p.tecnico)}</span>
           <span class="status-badge ${estadoKey}">${escapeHtml(p.estado)}</span>
         </div>
+        ${p.gestionadoPor ? `<div class="gestionado-line">Gestionado por <strong>${escapeHtml(p.gestionadoPor)}</strong></div>` : ''}
         <div class="order-ot">OT: ${escapeHtml(p.ot)}</div>
         <div class="order-items">${articulosFmt}</div>
         ${p.notas ? `<div class="order-notas">${escapeHtml(p.notas)}</div>` : ''}
