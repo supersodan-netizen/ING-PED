@@ -289,8 +289,21 @@
     border-bottom: 1px solid var(--border);
     font-size: 14px;
     color: var(--text);
+    cursor: pointer;
   }
   .item-row:last-child { border-bottom: none; }
+  .item-row.editing {
+    background: var(--amber-bg);
+    border-radius: 6px;
+    padding-left: 8px;
+    padding-right: 8px;
+    margin: 0 -8px;
+  }
+  .item-row.editing .item-num {
+    background: var(--amber-text);
+    color: #fff;
+    border-color: var(--amber-text);
+  }
 
   .item-num {
     background: var(--surface-2);
@@ -748,7 +761,7 @@
 
     <button class="add-btn" onclick="addItem()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Añadir otro artículo
+      <span id="add-btn-text">Añadir otro artículo</span>
     </button>
   </div>
 
@@ -840,13 +853,14 @@
   // ============================================================
   // CONFIGURACIÓN
   // ============================================================
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_48x-NqtHOXP4zpnRDVZ5pL6Y0QmUhVHXwYpg8OUEgtZXQW85ew9wsOYDECxPybsegQ/exec';
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbweGNv3vVkm9630-vQyrBdJHYJXqcqxcoRLXO9uszj1YinasCrybCxAoifIYkboeavW/exec';
   // ============================================================
 
   let urgenciaActual = 'Normal';
   let items = [];
   let formMode = 'new';      // 'new' | 'edit'
   let editingId = null;
+  let editingItemIndex = -1; // -1 = añadiendo nuevo, >=0 = editando ese artículo
 
   const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -1131,22 +1145,50 @@
     const unidad = document.getElementById('unidad').value;
     const ref = document.getElementById('ref').value.trim();
     if (!ref) { document.getElementById('ref').focus(); return; }
-    items.push({ qty, unidad, ref });
+
+    if (editingItemIndex >= 0) {
+      items[editingItemIndex] = { qty, unidad, ref };
+      editingItemIndex = -1;
+    } else {
+      items.push({ qty, unidad, ref });
+    }
+
     renderItems();
+    updateAddBtnText();
     document.getElementById('qty').value = 1;
     document.getElementById('unidad').value = 'ud';
     document.getElementById('ref').value = '';
     document.getElementById('ref').focus();
   }
 
+  function editItem(i) {
+    const item = items[i];
+    if (!item) return;
+    document.getElementById('qty').value = item.qty;
+    document.getElementById('unidad').value = item.unidad;
+    document.getElementById('ref').value = item.ref;
+    editingItemIndex = i;
+    renderItems();
+    updateAddBtnText();
+    document.getElementById('ref').focus();
+    // Scroll para que se vea el campo de edición
+    document.getElementById('ref').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function updateAddBtnText() {
+    const txt = document.getElementById('add-btn-text');
+    if (!txt) return;
+    txt.textContent = editingItemIndex >= 0 ? 'Guardar artículo' : 'Añadir otro artículo';
+  }
+
   function renderItems() {
     const list = document.getElementById('items-list');
     if (items.length === 0) { list.innerHTML = ''; return; }
     list.innerHTML = items.map((it, i) =>
-      `<div class="item-row">
+      `<div class="item-row ${editingItemIndex === i ? 'editing' : ''}" onclick="editItem(${i})">
         <span class="item-num">${it.qty} ${it.unidad}</span>
         <span class="item-text">${escapeHtml(it.ref)}</span>
-        <button class="item-del" onclick="removeItem(${i})" aria-label="Eliminar">
+        <button class="item-del" onclick="event.stopPropagation(); removeItem(${i})" aria-label="Eliminar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>`
@@ -1155,7 +1197,17 @@
 
   function removeItem(i) {
     items.splice(i, 1);
+    if (editingItemIndex === i) {
+      // Si borraba el que estaba editando, cancelo la edición y limpio campos
+      editingItemIndex = -1;
+      document.getElementById('qty').value = 1;
+      document.getElementById('unidad').value = 'ud';
+      document.getElementById('ref').value = '';
+    } else if (editingItemIndex > i) {
+      editingItemIndex--;
+    }
     renderItems();
+    updateAddBtnText();
   }
 
   function escapeHtml(s) {
@@ -1239,7 +1291,9 @@
 
   function resetForm() {
     items = [];
+    editingItemIndex = -1;
     renderItems();
+    updateAddBtnText();
     document.getElementById('tecnico').value = localStorage.getItem('tecnicoNombre') || '';
     document.getElementById('ot').value = '';
     document.getElementById('notas').value = '';
@@ -1373,12 +1427,14 @@
   function cancelEdit(silent) {
     formMode = 'new';
     editingId = null;
+    editingItemIndex = -1;
     document.getElementById('edit-banner').style.display = 'none';
     document.getElementById('cancel-btn').style.display = 'none';
     const btnText = document.getElementById('submit-btn-text');
     if (btnText) btnText.textContent = 'Enviar pedido';
     items = [];
     renderItems();
+    updateAddBtnText();
     document.getElementById('ot').value = '';
     document.getElementById('notas').value = '';
     document.getElementById('qty').value = 1;
