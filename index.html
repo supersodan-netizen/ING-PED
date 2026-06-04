@@ -461,6 +461,46 @@
     border-radius: 6px;
     margin: 6px 0;
   }
+  .info-toggle {
+    margin: 8px 0 6px;
+    font-size: 12px;
+  }
+  .info-toggle summary {
+    cursor: pointer;
+    color: var(--blue-text);
+    background: var(--blue-bg);
+    padding: 7px 10px;
+    border-radius: 6px;
+    list-style: none;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+  }
+  .info-toggle summary::-webkit-details-marker { display: none; }
+  .info-toggle summary::before {
+    content: '';
+    width: 0; height: 0;
+    border-left: 5px solid currentColor;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    transition: transform 0.15s;
+  }
+  .info-toggle[open] summary::before {
+    transform: rotate(90deg);
+  }
+  .info-body {
+    margin-top: 6px;
+    padding: 10px 12px;
+    background: var(--surface-2);
+    border-radius: 6px;
+    color: var(--text);
+    line-height: 1.5;
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
   .order-footer {
     display: flex;
     justify-content: space-between;
@@ -1278,6 +1318,7 @@
         <div class="order-ot">OT: ${escapeHtml(p.ot)}</div>
         <div class="order-items">${articulosFmt}</div>
         ${p.notas ? `<div class="order-notas">${escapeHtml(p.notas)}</div>` : ''}
+        ${p.infoOficina ? `<details class="info-toggle" onclick="event.stopPropagation()"><summary>Información de la oficina</summary><div class="info-body">${escapeHtml(p.infoOficina)}</div></details>` : ''}
         <div class="order-footer">
           <span class="urg-badge ${urgKey}">${escapeHtml(p.urgencia)}</span>
           ${editable ? '<span class="edit-hint">Toca para editar</span>' : ''}
