@@ -359,7 +359,7 @@
   }
   .tab {
     flex: 1;
-    padding: 10px 8px;
+    padding: 10px 4px;
     border: none;
     background: transparent;
     font-size: 13px;
@@ -369,6 +369,7 @@
     cursor: pointer;
     font-family: inherit;
     transition: all 0.15s;
+    white-space: nowrap;
   }
   .tab.active {
     background: var(--primary);
@@ -557,6 +558,69 @@
     font-family: inherit;
     cursor: pointer;
   }
+  .delete-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--red-bg);
+    color: var(--red-text);
+    border: 1px solid var(--red-border);
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .delete-btn:active { opacity: 0.85; }
+
+  /* Project cards */
+  .project-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .project-card summary {
+    cursor: pointer;
+    padding: 14px;
+    list-style: none;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .project-card summary::-webkit-details-marker { display: none; }
+  .project-card summary::before {
+    content: '';
+    width: 0; height: 0;
+    border-left: 6px solid var(--text-2);
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    transition: transform 0.15s;
+    flex-shrink: 0;
+  }
+  .project-card[open] summary::before {
+    transform: rotate(90deg);
+  }
+  .project-info { flex: 1; min-width: 0; }
+  .project-ot {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .project-stats {
+    font-size: 11px;
+    color: var(--text-2);
+  }
+  .project-orders {
+    padding: 4px 14px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .project-orders .order-card {
+    background: var(--surface);
+  }
   .edit-banner {
     background: var(--amber-bg);
     color: var(--amber-text);
@@ -713,6 +777,7 @@
   <div class="tabs" id="tabs-bar">
     <button class="tab active" data-tab="new" onclick="showTab('new')">Nuevo pedido</button>
     <button class="tab" data-tab="list" onclick="showTab('list')">Pedidos</button>
+    <button class="tab" data-tab="projects" onclick="showTab('projects')">Proyectos</button>
   </div>
 
   <div class="edit-banner" id="edit-banner" style="display:none">
@@ -797,6 +862,7 @@
       <span id="submit-btn-text">Enviar pedido</span>
     </button>
     <button class="cancel-btn" id="cancel-btn" onclick="cancelEdit()" style="display:none">Cancelar edición</button>
+    <button class="delete-btn" id="delete-btn" onclick="deleteOrder()" style="display:none">Eliminar pedido</button>
   </div>
 
   </div><!-- /view-form -->
@@ -834,6 +900,24 @@
     <div class="orders-wrap" id="orders-list"></div>
   </div>
 
+  <div id="view-projects" style="display:none">
+    <div class="sticky-header">
+      <div class="section">
+        <div class="section-label">Proyectos por año</div>
+        <div class="field">
+          <label>Año</label>
+          <select id="projects-anio"></select>
+        </div>
+      </div>
+      <button class="submit-btn" onclick="loadProjects()" style="margin: 0 1rem 0.5rem;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Ver proyectos
+      </button>
+      <div class="last-update" id="last-update-projects"></div>
+    </div>
+    <div class="orders-wrap" id="projects-list"></div>
+  </div>
+
 <div class="success-screen" id="success-screen">
   <div class="success-icon">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -853,7 +937,7 @@
   // ============================================================
   // CONFIGURACIÓN
   // ============================================================
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_48x-NqtHOXP4zpnRDVZ5pL6Y0QmUhVHXwYpg8OUEgtZXQW85ew9wsOYDECxPybsegQ/exec';
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbweGNv3vVkm9630-vQyrBdJHYJXqcqxcoRLXO9uszj1YinasCrybCxAoifIYkboeavW/exec';
   // ============================================================
 
   let urgenciaActual = 'Normal';
@@ -1018,6 +1102,7 @@
   function populateFilters() {
     const mesSel = document.getElementById('filter-mes');
     const anioSel = document.getElementById('filter-anio');
+    const anioProjSel = document.getElementById('projects-anio');
     const now = new Date();
     const yearNow = now.getFullYear();
     const monthNow = now.getMonth() + 1;
@@ -1036,15 +1121,18 @@
       anioHtml += `<option value="${y}"${sel}>${y}</option>`;
     }
     anioSel.innerHTML = anioHtml;
+    if (anioProjSel) anioProjSel.innerHTML = anioHtml;
   }
 
   // ============= AUTO-REFRESH =============
   let pollIntervalId = null;
   let lastUpdateTime = null;
+  let activeView = null; // 'list' | 'projects'
   const POLL_SECONDS = 60;
 
-  function startPolling() {
+  function startPolling(view) {
     stopPolling();
+    activeView = view;
     pollIntervalId = setInterval(silentReload, POLL_SECONDS * 1000);
   }
 
@@ -1053,20 +1141,26 @@
       clearInterval(pollIntervalId);
       pollIntervalId = null;
     }
+    activeView = null;
   }
 
   async function silentReload() {
     if (document.hidden) return;
-    if (document.getElementById('view-list').style.display === 'none') return;
+    if (!activeView) return;
     const auth = getAuth();
     if (!auth.user || !auth.pass) return;
 
     try {
-      const mes = document.getElementById('filter-mes').value;
-      const anio = document.getElementById('filter-anio').value;
       const params = [`user=${encodeURIComponent(auth.user)}`, `pass=${encodeURIComponent(auth.pass)}`];
-      if (mes) params.push('mes=' + mes);
-      if (anio) params.push('anio=' + anio);
+      if (activeView === 'list') {
+        const mes = document.getElementById('filter-mes').value;
+        const anio = document.getElementById('filter-anio').value;
+        if (mes) params.push('mes=' + mes);
+        if (anio) params.push('anio=' + anio);
+      } else if (activeView === 'projects') {
+        const anio = document.getElementById('projects-anio').value;
+        if (anio) params.push('anio=' + anio);
+      }
       const url = SCRIPT_URL + '?' + params.join('&');
       const resp = await fetch(url);
       const data = await resp.json();
@@ -1079,33 +1173,37 @@
       }
 
       const newJson = JSON.stringify(data.pedidos || []);
-      if (newJson !== window._lastPedidosJson) {
-        window._lastPedidosJson = newJson;
-        renderOrders(data.pedidos || []);
+      if (activeView === 'list') {
+        if (newJson !== window._lastPedidosJson) {
+          window._lastPedidosJson = newJson;
+          renderOrders(data.pedidos || []);
+        }
+      } else if (activeView === 'projects') {
+        if (newJson !== window._lastProjectsJson) {
+          window._lastProjectsJson = newJson;
+          renderProjects(data.pedidos || []);
+        }
       }
       lastUpdateTime = Date.now();
       renderLastUpdate();
     } catch (err) {
-      // Silenciar: reintentará en el siguiente ciclo
+      // Silenciar
     }
   }
 
   function renderLastUpdate() {
-    const el = document.getElementById('last-update');
-    if (!el) return;
-    if (!lastUpdateTime) { el.textContent = ''; return; }
+    const els = [document.getElementById('last-update'), document.getElementById('last-update-projects')];
+    if (!lastUpdateTime) { els.forEach(el => { if (el) el.textContent = ''; }); return; }
     const seconds = Math.floor((Date.now() - lastUpdateTime) / 1000);
     let text;
     if (seconds < 60) text = 'Actualizado ahora';
     else if (seconds < 3600) { const m = Math.floor(seconds / 60); text = `Actualizado hace ${m} minuto${m === 1 ? '' : 's'}`; }
     else { const h = Math.floor(seconds / 3600); text = `Actualizado hace ${h} hora${h === 1 ? '' : 's'}`; }
-    el.textContent = text;
+    els.forEach(el => { if (el) el.textContent = text; });
   }
 
-  // Refrescar el contador "hace X" cada minuto (no cada segundo)
   setInterval(renderLastUpdate, 60 * 1000);
 
-  // Refrescar al volver a la app (cambio de visibilidad)
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) silentReload();
   });
@@ -1113,20 +1211,23 @@
   // ============= FIN AUTO-REFRESH =============
 
   function showTab(tab) {
-    if (formMode === 'edit' && tab === 'list') {
+    if (formMode === 'edit' && tab !== 'new') {
       if (!confirm('¿Descartar los cambios de edición?')) return;
       cancelEdit(true);
     }
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
     document.getElementById('view-form').style.display = tab === 'new' ? 'block' : 'none';
     document.getElementById('view-list').style.display = tab === 'list' ? 'block' : 'none';
+    document.getElementById('view-projects').style.display = tab === 'projects' ? 'block' : 'none';
     document.getElementById('success-screen').style.display = 'none';
     window.scrollTo({ top: 0 });
 
-    // Al entrar a Pedidos: cargar automáticamente y arrancar polling
     if (tab === 'list') {
       loadOrders();
-      startPolling();
+      startPolling('list');
+    } else if (tab === 'projects') {
+      loadProjects();
+      startPolling('projects');
     } else {
       stopPolling();
     }
@@ -1341,6 +1442,114 @@
     }
   }
 
+  // ============= PROYECTOS =============
+
+  async function loadProjects() {
+    const anio = document.getElementById('projects-anio').value;
+    const list = document.getElementById('projects-list');
+    list.innerHTML = '<div class="loading-msg">Cargando proyectos...</div>';
+
+    try {
+      const auth = getAuth();
+      const params = [`user=${encodeURIComponent(auth.user)}`, `pass=${encodeURIComponent(auth.pass)}`];
+      if (anio) params.push('anio=' + anio);
+      const url = SCRIPT_URL + '?' + params.join('&');
+      const resp = await fetch(url);
+      const data = await resp.json();
+
+      if (data.message === 'auth') {
+        clearAuth();
+        showLoginScreen();
+        return;
+      }
+
+      window._lastProjectsJson = JSON.stringify(data.pedidos || []);
+      lastUpdateTime = Date.now();
+      renderLastUpdate();
+      renderProjects(data.pedidos || []);
+    } catch (err) {
+      list.innerHTML = '<div class="empty-msg">Error al cargar. Revisa tu conexión.</div>';
+    }
+  }
+
+  function renderProjects(pedidos) {
+    const list = document.getElementById('projects-list');
+    if (!pedidos || pedidos.length === 0) {
+      list.innerHTML = '<div class="empty-msg">No hay pedidos para este año.</div>';
+      return;
+    }
+
+    // Agrupar por OT (vacío → "Sin OT")
+    const grupos = {};
+    pedidos.forEach(p => {
+      const ot = (p.ot || '').trim() || 'Sin OT';
+      if (!grupos[ot]) grupos[ot] = [];
+      grupos[ot].push(p);
+    });
+
+    // Ordenar: proyectos con más pendientes primero
+    const ots = Object.keys(grupos).sort((a, b) => {
+      const pA = grupos[a].filter(p => p.estado === 'Pendiente').length;
+      const pB = grupos[b].filter(p => p.estado === 'Pendiente').length;
+      return pB - pA;
+    });
+
+    // Guardar para usar en startEdit desde dentro de un proyecto
+    window._pedidosCache = pedidos;
+
+    list.innerHTML = ots.map(ot => {
+      const orders = grupos[ot];
+      const total = orders.length;
+      const pendientes = orders.filter(p => p.estado === 'Pendiente').length;
+      const urgentes = orders.filter(p => p.urgencia === 'Urgente' || p.urgencia === 'Crítico').length;
+
+      const stats = [];
+      stats.push(`${total} pedido${total === 1 ? '' : 's'}`);
+      if (pendientes > 0) stats.push(`${pendientes} pendiente${pendientes === 1 ? '' : 's'}`);
+      if (urgentes > 0) stats.push(`${urgentes} urgente${urgentes === 1 ? '' : 's'}`);
+
+      const ordersHtml = orders.map(p => {
+        const globalIdx = pedidos.indexOf(p);
+        return renderOrderCard(p, globalIdx);
+      }).join('');
+
+      return `<details class="project-card">
+        <summary>
+          <div class="project-info">
+            <div class="project-ot">${escapeHtml(ot)}</div>
+            <div class="project-stats">${stats.join(' · ')}</div>
+          </div>
+        </summary>
+        <div class="project-orders">${ordersHtml}</div>
+      </details>`;
+    }).join('');
+  }
+
+  // Reutilizable: render una tarjeta de pedido (mismo HTML que usaba renderOrders)
+  function renderOrderCard(p, idx) {
+    const estadoKey = (p.estado || 'Pendiente').toLowerCase();
+    const urgKey = (p.urgencia || 'Normal').toLowerCase().replace('í','i');
+    const editable = estadoKey === 'pendiente';
+    const articulosFmt = escapeHtml(p.articulos).replace(/ \| /g, '<br>');
+    return `<div class="order-card ${editable ? 'editable' : ''}" ${editable ? `onclick="startEdit(${idx})"` : ''}>
+      <div class="order-header">
+        <span class="order-date">${escapeHtml(p.fecha)} · ${escapeHtml(p.tecnico)}</span>
+        <span class="status-badge ${estadoKey}">${escapeHtml(p.estado)}</span>
+      </div>
+      ${p.gestionadoPor ? `<div class="gestionado-line">Gestionado por <strong>${escapeHtml(p.gestionadoPor)}</strong></div>` : ''}
+      <div class="order-ot">OT: ${escapeHtml(p.ot)}</div>
+      <div class="order-items">${articulosFmt}</div>
+      ${p.notas ? `<div class="order-notas">${escapeHtml(p.notas)}</div>` : ''}
+      ${p.infoOficina ? `<details class="info-toggle" onclick="event.stopPropagation()"><summary>Información de la oficina</summary><div class="info-body">${escapeHtml(p.infoOficina)}</div></details>` : ''}
+      <div class="order-footer">
+        <span class="urg-badge ${urgKey}">${escapeHtml(p.urgencia)}</span>
+        ${editable ? '<span class="edit-hint">Toca para editar</span>' : ''}
+      </div>
+    </div>`;
+  }
+
+  // ============= FIN PROYECTOS =============
+
   function renderOrders(pedidos) {
     window._pedidosCache = pedidos;
     rerenderOrders();
@@ -1358,27 +1567,7 @@
     const toShow = limit > 0 ? pedidos.slice(0, limit) : pedidos;
     const hidden = pedidos.length - toShow.length;
 
-    list.innerHTML = toShow.map((p, idx) => {
-      const estadoKey = (p.estado || 'Pendiente').toLowerCase();
-      const urgKey = (p.urgencia || 'Normal').toLowerCase().replace('í','i');
-      const editable = estadoKey === 'pendiente';
-      const articulosFmt = escapeHtml(p.articulos).replace(/ \| /g, '<br>');
-      return `<div class="order-card ${editable ? 'editable' : ''}" ${editable ? `onclick="startEdit(${idx})"` : ''}>
-        <div class="order-header">
-          <span class="order-date">${escapeHtml(p.fecha)} · ${escapeHtml(p.tecnico)}</span>
-          <span class="status-badge ${estadoKey}">${escapeHtml(p.estado)}</span>
-        </div>
-        ${p.gestionadoPor ? `<div class="gestionado-line">Gestionado por <strong>${escapeHtml(p.gestionadoPor)}</strong></div>` : ''}
-        <div class="order-ot">OT: ${escapeHtml(p.ot)}</div>
-        <div class="order-items">${articulosFmt}</div>
-        ${p.notas ? `<div class="order-notas">${escapeHtml(p.notas)}</div>` : ''}
-        ${p.infoOficina ? `<details class="info-toggle" onclick="event.stopPropagation()"><summary>Información de la oficina</summary><div class="info-body">${escapeHtml(p.infoOficina)}</div></details>` : ''}
-        <div class="order-footer">
-          <span class="urg-badge ${urgKey}">${escapeHtml(p.urgencia)}</span>
-          ${editable ? '<span class="edit-hint">Toca para editar</span>' : ''}
-        </div>
-      </div>`;
-    }).join('');
+    list.innerHTML = toShow.map((p, idx) => renderOrderCard(p, idx)).join('');
 
     if (hidden > 0) {
       list.innerHTML += `<div class="more-hint">Hay ${hidden} pedido${hidden === 1 ? '' : 's'} más. Cambia "Mostrar" para verlos.</div>`;
@@ -1416,12 +1605,48 @@
 
     document.getElementById('edit-banner').style.display = 'block';
     document.getElementById('cancel-btn').style.display = 'block';
+    document.getElementById('delete-btn').style.display = 'block';
     document.getElementById('submit-btn-text').textContent = 'Guardar cambios';
 
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'new'));
     document.getElementById('view-form').style.display = 'block';
     document.getElementById('view-list').style.display = 'none';
+    document.getElementById('view-projects').style.display = 'none';
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function deleteOrder() {
+    if (!editingId) return;
+    if (!confirm('¿Borrar este pedido? Esta acción no se puede deshacer.')) return;
+
+    const auth = getAuth();
+    const payload = {
+      user: auth.user,
+      pass: auth.pass,
+      action: 'delete',
+      id: editingId
+    };
+
+    const btn = document.getElementById('delete-btn');
+    btn.disabled = true;
+    btn.textContent = 'Borrando...';
+
+    try {
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      cancelEdit(true);
+      showTab('list');
+      setTimeout(loadOrders, 800);
+    } catch (err) {
+      showError('Error al borrar. Revisa tu conexión e inténtalo de nuevo.');
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Eliminar pedido';
   }
 
   function cancelEdit(silent) {
@@ -1430,6 +1655,7 @@
     editingItemIndex = -1;
     document.getElementById('edit-banner').style.display = 'none';
     document.getElementById('cancel-btn').style.display = 'none';
+    document.getElementById('delete-btn').style.display = 'none';
     const btnText = document.getElementById('submit-btn-text');
     if (btnText) btnText.textContent = 'Enviar pedido';
     items = [];
