@@ -501,8 +501,7 @@
     border-bottom: 4px solid transparent;
     transition: transform 0.15s;
   }
-  .info-toggle[open] summary::before,
-  .info-toggle.is-open summary::before {
+  .info-toggle[open] summary::before {
     transform: rotate(90deg);
   }
   .info-body {
@@ -1541,7 +1540,7 @@
       <div class="order-ot">OT: ${escapeHtml(p.ot)}</div>
       <div class="order-items">${articulosFmt}</div>
       ${p.notas ? `<div class="order-notas">${escapeHtml(p.notas)}</div>` : ''}
-      ${p.infoOficina ? `<details class="info-toggle" ontoggle="this.classList.toggle('is-open',this.open)"><summary onclick="event.stopPropagation()">Información de la oficina</summary><div class="info-body">${escapeHtml(p.infoOficina)}</div></details>` : ''}
+      ${p.infoOficina ? `<details class="info-toggle" onclick="event.stopPropagation()"><summary>Información de la oficina</summary><div class="info-body">${escapeHtml(p.infoOficina)}</div></details>` : ''}
       <div class="order-footer">
         <span class="urg-badge ${urgKey}">${escapeHtml(p.urgencia)}</span>
         ${editable ? '<span class="edit-hint">Toca para editar</span>' : ''}
