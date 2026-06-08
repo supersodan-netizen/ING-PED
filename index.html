@@ -501,7 +501,8 @@
     border-bottom: 4px solid transparent;
     transition: transform 0.15s;
   }
-  .info-toggle[open] summary::before {
+  .info-toggle[open] summary::before,
+  .info-toggle.is-open summary::before {
     transform: rotate(90deg);
   }
   .info-body {
@@ -947,6 +948,18 @@
   let editingItemIndex = -1; // -1 = añadiendo nuevo, >=0 = editando ese artículo
 
   const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  // Fix triángulo info-toggle en contexto anidado (proyectos)
+  document.addEventListener('click', e => {
+    const summary = e.target.closest('.info-toggle > summary');
+    if (!summary) return;
+    const details = summary.closest('.info-toggle');
+    if (!details) return;
+    // El navegador procesa el toggle después del click, usamos rAF para leer el estado final
+    requestAnimationFrame(() => {
+      details.classList.toggle('is-open', details.open);
+    });
+  });
 
   document.addEventListener('DOMContentLoaded', () => {
     const stored = localStorage.getItem('tecnicoNombre') || '';
