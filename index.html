@@ -316,6 +316,14 @@
     font-weight: 500;
   }
   .item-text { flex: 1; word-break: break-word; }
+  .item-thumb {
+    width: 36px; height: 36px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
   .item-del {
     color: var(--text-3);
     cursor: pointer;
@@ -325,6 +333,121 @@
     display: flex;
   }
   .item-del svg { width: 16px; height: 16px; }
+
+  /* Photo capture area (debajo del input de artículo) */
+  .photo-area {
+    padding: 8px 14px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .photo-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .photo-btn svg { width: 16px; height: 16px; }
+  .photo-preview {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .photo-preview img {
+    width: 44px; height: 44px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .photo-remove {
+    background: none;
+    border: none;
+    color: var(--red-text);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-weight: bold;
+    font-family: inherit;
+  }
+
+  /* Tarjeta de pedido — items con miniatura por artículo */
+  .card-items {
+    margin-bottom: 6px;
+  }
+  .card-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.4;
+  }
+  .card-item-text { flex: 1; word-break: break-word; }
+  .card-item-thumb {
+    width: 38px; height: 38px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* Visor de fotos a pantalla completa */
+  .photo-viewer {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 10000;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .photo-viewer.open { display: flex; }
+  .photo-viewer img {
+    max-width: 100%;
+    max-height: 80vh;
+    border-radius: 8px;
+  }
+  .viewer-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 40px; height: 40px;
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: white;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+  }
+  .viewer-open-drive {
+    margin-top: 16px;
+    color: white;
+    text-decoration: underline;
+    font-size: 14px;
+  }
+  .viewer-loading {
+    color: white;
+    font-size: 13px;
+    margin-top: 8px;
+    opacity: 0.7;
+  }
 
   .error-msg {
     display: none;
@@ -824,6 +947,15 @@
       </div>
     </div>
 
+    <div class="photo-area">
+      <button type="button" class="photo-btn" onclick="document.getElementById('photo-input').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span id="photo-btn-text">Añadir foto</span>
+      </button>
+      <div class="photo-preview" id="photo-preview"></div>
+    </div>
+    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none">
+
     <button class="add-btn" onclick="addItem()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       <span id="add-btn-text">Añadir otro artículo</span>
@@ -933,6 +1065,13 @@
 
 </div><!-- /.wrap -->
 
+<div class="photo-viewer" id="photo-viewer">
+  <button class="viewer-close" onclick="closePhotoViewer()" aria-label="Cerrar">×</button>
+  <img id="viewer-img" src="" alt="">
+  <div class="viewer-loading" id="viewer-loading" style="display:none">Cargando...</div>
+  <a class="viewer-open-drive" id="viewer-open-drive" target="_blank" rel="noopener">Abrir en Drive</a>
+</div>
+
 <script>
   // ============================================================
   // CONFIGURACIÓN
@@ -942,11 +1081,125 @@
 
   let urgenciaActual = 'Normal';
   let items = [];
-  let formMode = 'new';      // 'new' | 'edit'
+  let formMode = 'new';
   let editingId = null;
-  let editingItemIndex = -1; // -1 = añadiendo nuevo, >=0 = editando ese artículo
+  let editingItemIndex = -1;
+  let currentPhoto = null; // { dataUrl } o { url } o null
 
   const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  // ============= FOTOS =============
+
+  function extractDriveId(url) {
+    const m = (url || '').match(/\/d\/([^\/?]+)/);
+    return m ? m[1] : '';
+  }
+
+  function driveThumbnailUrl(url, size) {
+    size = size || 'w200';
+    const id = extractDriveId(url);
+    return id ? 'https://drive.google.com/thumbnail?id=' + id + '&sz=' + size : '';
+  }
+
+  async function compressImage(file, maxSize, quality) {
+    maxSize = maxSize || 1200;
+    quality = quality || 0.75;
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let w = img.width, h = img.height;
+          if (w > maxSize || h > maxSize) {
+            const ratio = Math.min(maxSize / w, maxSize / h);
+            w = Math.round(w * ratio);
+            h = Math.round(h * ratio);
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderPhotoPreview() {
+    const preview = document.getElementById('photo-preview');
+    if (!preview) return;
+    if (!currentPhoto) { preview.innerHTML = ''; return; }
+    const src = currentPhoto.dataUrl || driveThumbnailUrl(currentPhoto.url);
+    preview.innerHTML = '<img src="' + src + '" alt="Foto"><button type="button" class="photo-remove" onclick="clearCurrentPhoto()" aria-label="Quitar">×</button>';
+  }
+
+  function clearCurrentPhoto() {
+    currentPhoto = null;
+    document.getElementById('photo-input').value = '';
+    renderPhotoPreview();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const inp = document.getElementById('photo-input');
+    if (inp) {
+      inp.addEventListener('change', async e => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+          const dataUrl = await compressImage(file);
+          currentPhoto = { dataUrl: dataUrl };
+          renderPhotoPreview();
+        } catch (err) {
+          alert('No se pudo procesar la foto. Inténtalo de nuevo.');
+        }
+        e.target.value = ''; // permitir volver a elegir la misma
+      });
+    }
+  });
+
+  function viewPhoto(url) {
+    if (!url) return;
+    const id = extractDriveId(url);
+    if (!id) return;
+    const viewer = document.getElementById('photo-viewer');
+    const img = document.getElementById('viewer-img');
+    const loading = document.getElementById('viewer-loading');
+    const openLink = document.getElementById('viewer-open-drive');
+    img.style.display = 'none';
+    loading.style.display = 'block';
+    img.onload = () => {
+      img.style.display = 'block';
+      loading.style.display = 'none';
+    };
+    img.onerror = () => {
+      loading.textContent = 'No se pudo cargar la foto. Abre desde Drive.';
+    };
+    img.src = 'https://drive.google.com/thumbnail?id=' + id + '&sz=w1600';
+    openLink.href = url;
+    viewer.classList.add('open');
+  }
+
+  function closePhotoViewer() {
+    document.getElementById('photo-viewer').classList.remove('open');
+    document.getElementById('viewer-img').src = '';
+  }
+
+  // Cerrar visor al pulsar fuera de la foto
+  document.addEventListener('DOMContentLoaded', () => {
+    const viewer = document.getElementById('photo-viewer');
+    if (viewer) {
+      viewer.addEventListener('click', e => {
+        if (e.target === viewer) closePhotoViewer();
+      });
+    }
+  });
+
+  // ============= FIN FOTOS =============
 
   document.addEventListener('DOMContentLoaded', () => {
     const stored = localStorage.getItem('tecnicoNombre') || '';
@@ -1247,15 +1500,19 @@
     const ref = document.getElementById('ref').value.trim();
     if (!ref) { document.getElementById('ref').focus(); return; }
 
+    const photo = currentPhoto; // puede ser null
+
     if (editingItemIndex >= 0) {
-      items[editingItemIndex] = { qty, unidad, ref };
+      items[editingItemIndex] = { qty, unidad, ref, photo };
       editingItemIndex = -1;
     } else {
-      items.push({ qty, unidad, ref });
+      items.push({ qty, unidad, ref, photo });
     }
 
+    currentPhoto = null;
     renderItems();
     updateAddBtnText();
+    renderPhotoPreview();
     document.getElementById('qty').value = 1;
     document.getElementById('unidad').value = 'ud';
     document.getElementById('ref').value = '';
@@ -1268,11 +1525,12 @@
     document.getElementById('qty').value = item.qty;
     document.getElementById('unidad').value = item.unidad;
     document.getElementById('ref').value = item.ref;
+    currentPhoto = item.photo || null;
     editingItemIndex = i;
     renderItems();
     updateAddBtnText();
+    renderPhotoPreview();
     document.getElementById('ref').focus();
-    // Scroll para que se vea el campo de edición
     document.getElementById('ref').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
@@ -1285,25 +1543,35 @@
   function renderItems() {
     const list = document.getElementById('items-list');
     if (items.length === 0) { list.innerHTML = ''; return; }
-    list.innerHTML = items.map((it, i) =>
-      `<div class="item-row ${editingItemIndex === i ? 'editing' : ''}" onclick="editItem(${i})">
+    list.innerHTML = items.map((it, i) => {
+      let thumbHtml = '';
+      if (it.photo) {
+        const src = it.photo.dataUrl || driveThumbnailUrl(it.photo.url, 'w120');
+        if (src) {
+          const viewerArg = it.photo.url ? `viewPhoto('${it.photo.url}')` : '';
+          thumbHtml = `<img class="item-thumb" src="${src}" alt="Foto"${viewerArg ? ` onclick="event.stopPropagation(); ${viewerArg}"` : ''}>`;
+        }
+      }
+      return `<div class="item-row ${editingItemIndex === i ? 'editing' : ''}" onclick="editItem(${i})">
         <span class="item-num">${it.qty} ${it.unidad}</span>
         <span class="item-text">${escapeHtml(it.ref)}</span>
+        ${thumbHtml}
         <button class="item-del" onclick="event.stopPropagation(); removeItem(${i})" aria-label="Eliminar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
-      </div>`
-    ).join('');
+      </div>`;
+    }).join('');
   }
 
   function removeItem(i) {
     items.splice(i, 1);
     if (editingItemIndex === i) {
-      // Si borraba el que estaba editando, cancelo la edición y limpio campos
       editingItemIndex = -1;
+      currentPhoto = null;
       document.getElementById('qty').value = 1;
       document.getElementById('unidad').value = 'ud';
       document.getElementById('ref').value = '';
+      renderPhotoPreview();
     } else if (editingItemIndex > i) {
       editingItemIndex--;
     }
@@ -1336,7 +1604,14 @@
 
     localStorage.setItem('tecnicoNombre', tecnico);
 
-    const articulosTexto = items.map(it => `${it.qty} ${it.unidad} ${it.ref}`).join(' | ');
+    // Items con foto (base64 nueva o URL existente)
+    const itemsPayload = items.map(it => ({
+      qty: it.qty,
+      unidad: it.unidad,
+      ref: it.ref,
+      photoBase64: it.photo && it.photo.dataUrl ? it.photo.dataUrl : null,
+      photoUrl: it.photo && it.photo.url ? it.photo.url : null
+    }));
 
     const auth = getAuth();
     const payload = {
@@ -1345,7 +1620,7 @@
       action: formMode === 'edit' ? 'update' : 'create',
       id: editingId,
       tecnico, ot,
-      articulos: articulosTexto,
+      items: itemsPayload,
       urgencia: urgenciaActual,
       notas
     };
@@ -1353,7 +1628,8 @@
     const isEdit = formMode === 'edit';
     const btn = document.getElementById('submit-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="loading"></span> ' + (isEdit ? 'Guardando...' : 'Enviando...');
+    const hasNewPhotos = itemsPayload.some(it => it.photoBase64);
+    btn.innerHTML = '<span class="loading"></span> ' + (hasNewPhotos ? 'Subiendo fotos...' : (isEdit ? 'Guardando...' : 'Enviando...'));
 
     let sent = false;
     try {
@@ -1368,7 +1644,6 @@
       sent = false;
     }
 
-    // Restaurar SIEMPRE el botón antes de tocar el resto del DOM
     btn.disabled = false;
     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> <span id="submit-btn-text">' + (isEdit ? 'Guardar cambios' : 'Enviar pedido') + '</span>';
 
@@ -1384,6 +1659,7 @@
     } else {
       document.getElementById('view-form').style.display = 'none';
       document.getElementById('view-list').style.display = 'none';
+      document.getElementById('view-projects').style.display = 'none';
       document.getElementById('tabs-bar').style.display = 'none';
       document.getElementById('success-screen').style.display = 'block';
     }
@@ -1393,7 +1669,11 @@
   function resetForm() {
     items = [];
     editingItemIndex = -1;
+    currentPhoto = null;
+    const photoInput = document.getElementById('photo-input');
+    if (photoInput) photoInput.value = '';
     renderItems();
+    renderPhotoPreview();
     updateAddBtnText();
     document.getElementById('tecnico').value = localStorage.getItem('tecnicoNombre') || '';
     document.getElementById('ot').value = '';
@@ -1530,7 +1810,22 @@
     const estadoKey = (p.estado || 'Pendiente').toLowerCase();
     const urgKey = (p.urgencia || 'Normal').toLowerCase().replace('í','i');
     const editable = estadoKey === 'pendiente';
-    const articulosFmt = escapeHtml(p.articulos).replace(/ \| /g, '<br>');
+
+    // Construir items por línea con miniaturas paralelas
+    const articulosArr = String(p.articulos || '').split(/\r?\n| \| /);
+    const fotosArr = String(p.fotos || '').split(/\r?\n/);
+    const itemsHtml = articulosArr.map((art, i) => {
+      const txt = (art || '').trim();
+      if (!txt) return '';
+      const fotoUrl = (fotosArr[i] || '').trim();
+      let thumb = '';
+      if (fotoUrl) {
+        const thumbSrc = driveThumbnailUrl(fotoUrl, 'w120');
+        thumb = `<img class="card-item-thumb" src="${thumbSrc}" alt="Foto" onclick="event.stopPropagation(); viewPhoto('${fotoUrl}')" onerror="this.style.display='none'">`;
+      }
+      return `<div class="card-item"><span class="card-item-text">${escapeHtml(txt)}</span>${thumb}</div>`;
+    }).filter(s => s).join('');
+
     return `<div class="order-card ${editable ? 'editable' : ''}" ${editable ? `onclick="startEdit(${idx})"` : ''}>
       <div class="order-header">
         <span class="order-date">${escapeHtml(p.fecha)} · ${escapeHtml(p.tecnico)}</span>
@@ -1538,7 +1833,7 @@
       </div>
       ${p.gestionadoPor ? `<div class="gestionado-line">Gestionado por <strong>${escapeHtml(p.gestionadoPor)}</strong></div>` : ''}
       <div class="order-ot">OT: ${escapeHtml(p.ot)}</div>
-      <div class="order-items">${articulosFmt}</div>
+      <div class="card-items">${itemsHtml}</div>
       ${p.notas ? `<div class="order-notas">${escapeHtml(p.notas)}</div>` : ''}
       ${p.infoOficina ? `<details class="info-toggle" onclick="event.stopPropagation()"><summary>Información de la oficina</summary><div class="info-body">${escapeHtml(p.infoOficina)}</div></details>` : ''}
       <div class="order-footer">
@@ -1576,12 +1871,14 @@
 
   function parseArticulos(str) {
     if (!str) return [];
-    return str.split(' | ').map(p => {
+    // Soportar separador nuevo ("\n") y antiguo (" | ")
+    const parts = str.split(/\r?\n| \| /);
+    return parts.map(p => {
       const tokens = p.trim().split(' ');
       const qty = parseInt(tokens[0]) || 1;
       const unidad = tokens[1] || 'ud';
       const ref = tokens.slice(2).join(' ');
-      return { qty, unidad, ref };
+      return { qty, unidad, ref, photo: null };
     }).filter(it => it.ref);
   }
 
@@ -1597,7 +1894,15 @@
     document.getElementById('notas').value = p.notas || '';
 
     items = parseArticulos(p.articulos);
+    // Cargar URLs de fotos paralelas
+    const fotosArr = String(p.fotos || '').split(/\r?\n/);
+    items.forEach((it, i) => {
+      const u = (fotosArr[i] || '').trim();
+      it.photo = u ? { url: u } : null;
+    });
+    currentPhoto = null;
     renderItems();
+    renderPhotoPreview();
 
     const urgKey = (p.urgencia || 'Normal');
     const btn = document.getElementById('u-' + urgKey.toLowerCase().replace('í','i'));
@@ -1659,7 +1964,11 @@
     const btnText = document.getElementById('submit-btn-text');
     if (btnText) btnText.textContent = 'Enviar pedido';
     items = [];
+    currentPhoto = null;
+    const photoInput = document.getElementById('photo-input');
+    if (photoInput) photoInput.value = '';
     renderItems();
+    renderPhotoPreview();
     updateAddBtnText();
     document.getElementById('ot').value = '';
     document.getElementById('notas').value = '';
